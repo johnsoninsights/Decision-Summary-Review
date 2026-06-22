@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Case for Next.js</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0D1117;
+    --surface:   #131820;
+    --border:    #1E2533;
+    --blue:      #4F7CFF;
+    --blue-soft: rgba(79,124,255,0.10);
+    --gold:      #E8B84B;
+    --gold-soft: rgba(232,184,75,0.10);
+    --text:      #E8EBF4;
+    --muted:     #6B7591;
+    --check-bg:  rgba(79,124,255,0.15);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.65;
+    min-height: 100vh;
+    padding: 60px 24px 100px;
+  }
+
+  /* ── Page header ─────────────────────────────── */
+  .page-header {
+    text-align: center;
+    max-width: 560px;
+    margin: 0 auto 72px;
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .page-header.visible { opacity: 1; transform: none; }
+
+  .eyebrow {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--blue);
+    background: var(--blue-soft);
+    border: 1px solid rgba(79,124,255,0.25);
+    border-radius: 4px;
+    padding: 4px 10px;
+    margin-bottom: 20px;
+  }
+
+  .page-title {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: clamp(32px, 5vw, 48px);
+    font-weight: 400;
+    line-height: 1.18;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  .page-title em {
+    font-style: italic;
+    color: var(--muted);
+  }
+
+  .page-rule {
+    margin: 24px auto 0;
+    width: 40px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--blue), transparent);
+    border: none;
+  }
+
+  /* ── Track layout ─────────────────────────────── */
+  .track {
+    position: relative;
+    max-width: 760px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .track-line {
+    position: absolute;
+    left: 27px;
+    top: 44px;
+    bottom: 44px;
+    width: 1px;
+    background: linear-gradient(to bottom,
+      var(--blue) 0%,
+      rgba(79,124,255,0.3) 60%,
+      var(--gold) 100%
+    );
+    opacity: 0.35;
+  }
+
+  /* ── Cards ─────────────────────────────────────── */
+  .card {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 36px 32px 76px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(22px);
+    transition: opacity 0.55s ease, transform 0.55s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  .card.visible { opacity: 1; transform: none; }
+  .card:hover {
+    border-color: rgba(79,124,255,0.3);
+    box-shadow: 0 0 0 1px rgba(79,124,255,0.06), 0 12px 40px rgba(0,0,0,0.4);
+  }
+  .card.featured:hover {
+    border-color: rgba(232,184,75,0.35);
+    box-shadow: 0 0 0 1px rgba(232,184,75,0.08), 0 12px 40px rgba(0,0,0,0.4);
+  }
+
+  /* left accent bar */
+  .card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 20px; bottom: 20px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--blue);
+    opacity: 0.6;
+  }
+  .card.featured::before { background: var(--gold); }
+
+  /* subtle inner glow */
+  .card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+    background: radial-gradient(ellipse 60% 30% at 50% 0%, rgba(79,124,255,0.04) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .card.featured::after {
+    background: radial-gradient(ellipse 60% 30% at 50% 0%, rgba(232,184,75,0.05) 0%, transparent 70%);
+  }
+
+  /* ── Node dot ───────────────────────────────── */
+  .node {
+    position: absolute;
+    left: 20px;
+    top: 34px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--blue);
+    border: 3px solid var(--bg);
+    box-shadow: 0 0 0 1px var(--blue);
+    z-index: 1;
+  }
+  .card.featured .node {
+    background: var(--gold);
+    box-shadow: 0 0 0 1px var(--gold);
+  }
+
+  /* ── Card header ─────────────────────────────── */
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  .icon-wrap {
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
+    background: var(--blue-soft);
+    border: 1px solid rgba(79,124,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+  }
+  .card.featured .icon-wrap {
+    background: var(--gold-soft);
+    border-color: rgba(232,184,75,0.25);
+  }
+
+  .icon-wrap svg {
+    width: 18px;
+    height: 18px;
+    color: var(--blue);
+  }
+  .card.featured .icon-wrap svg { color: var(--gold); }
+
+  .title-block { flex: 1; }
+
+  .card-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .card-title {
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: -0.018em;
+    line-height: 1.25;
+    color: var(--text);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--gold);
+    background: rgba(232,184,75,0.12);
+    border: 1px solid rgba(232,184,75,0.25);
+    border-radius: 4px;
+    padding: 3px 8px;
+  }
+  .badge svg { width: 9px; height: 9px; }
+
+  /* ── Body copy ──────────────────────────────── */
+  .card-body {
+    font-size: 14.5px;
+    color: #8A93AD;
+    margin-bottom: 20px;
+    line-height: 1.7;
+  }
+
+  /* ── Bullets ────────────────────────────────── */
+  .bullets {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .bullets li {
+    display: flex;
+    gap: 12px;
+    font-size: 14px;
+    color: #C0C7DC;
+    line-height: 1.6;
+  }
+
+  .check {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    background: var(--check-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2px;
+  }
+  .card.featured .check {
+    background: rgba(232,184,75,0.12);
+  }
+  .check svg {
+    width: 10px;
+    height: 10px;
+    color: var(--blue);
+  }
+  .card.featured .check svg { color: var(--gold); }
+
+  /* ── Pull quote ──────────────────────────────── */
+  .pull-quote {
+    margin-top: 24px;
+    padding: 18px 20px;
+    background: rgba(232,184,75,0.06);
+    border: 1px solid rgba(232,184,75,0.15);
+    border-radius: 9px;
+    position: relative;
+  }
+  .pull-quote::before {
+    content: '\201C';
+    position: absolute;
+    top: -8px;
+    left: 16px;
+    font-family: 'DM Serif Display', serif;
+    font-size: 40px;
+    color: var(--gold);
+    opacity: 0.5;
+    line-height: 1;
+  }
+
+  .pull-quote p {
+    font-size: 13.5px;
+    font-style: italic;
+    color: #9EA8C2;
+    line-height: 1.72;
+  }
+
+  /* ── Delay stagger ───────────────────────────── */
+  .card:nth-child(2) { transition-delay: 0.1s; }
+  .card:nth-child(3) { transition-delay: 0.2s; }
+
+  /* ── Responsive ──────────────────────────────── */
+  @media (max-width: 640px) {
+    body { padding: 40px 16px 80px; }
+    .track-line { left: 23px; }
+    .node { left: 16px; }
+    .card { padding: 26px 22px 26px 60px; }
+    .card-title { font-size: 17px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card, .page-header {
+      opacity: 1 !important;
+      transform: none !important;
+      transition: none !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header class="page-header">
+  <div class="eyebrow">Strategic Analysis</div>
+  <h1 class="page-title">Three reasons the<br /><em>numbers hold up</em></h1>
+  <hr class="page-rule" />
+</header>
+
+<div class="track">
+  <div class="track-line"></div>
+
+  <!-- Card 1 -->
+  <article class="card" data-delay="0">
+    <div class="node"></div>
+    <div class="card-header">
+      <div class="icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+        </svg>
+      </div>
+      <div class="title-block">
+        <div class="card-meta">
+          <h2 class="card-title">The cost is lower than the original estimate suggests</h2>
+        </div>
+      </div>
+    </div>
+    <p class="card-body">Hosting 10–15 client sites on a modern platform like Vercel runs approximately $40–200 per month total — not per site. That's competitive with, or better than, our current per-site hosting cost, even during busy enrollment periods.</p>
+    <ul class="bullets">
+      <li>
+        <span class="check"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>
+        <span>Billing is based on team size and actual usage — not the number of client sites hosted. More sites don't automatically mean a bigger bill.</span>
+      </li>
+      <li>
+        <span class="check"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>
+        <span>Benefits microsites are among the lightest possible workloads — mostly text and static pages. PDF documents, which drive the most data, can be stored separately at near-zero cost using widely available cloud storage.</span>
+      </li>
+      <li>
+        <span class="check"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>
+        <span>The original cost concerns in the prior analysis were valid questions — but when modeled against our actual traffic profile and site type, the numbers are well within budget at scale.</span>
+      </li>
+    </ul>
+  </article>
+
+  <!-- Card 2 -->
+  <article class="card" data-delay="1">
+    <div class="node"></div>
+    <div class="card-header">
+      <div class="icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+          <path d="M8 10l2 2 4-4"/>
+        </svg>
+      </div>
+      <div class="title-block">
+        <div class="card-meta">
+          <h2 class="card-title">AI tools make code-based workflows dramatically faster</h2>
+        </div>
+      </div>
+    </div>
+    <p class="card-body">The build-time estimates in the prior analysis assume a developer working manually. AI coding tools — built directly into the code editor — change the equation significantly. This advantage applies to code, not to drag-and-drop page builders.</p>
+    <ul class="bullets">
+      <li>
+        <span class="check"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>
+        <span>Tasks that once took hours — building page layouts, connecting content systems, writing repetitive component code — now take minutes when an AI agent understands your codebase and can generate from a spec.</span>
+      </li>
+      <li>
+        <span class="check"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>
+        <span>WordPress and Elementor's value is the visual editor — which AI cannot accelerate. The gap between the two workflows is actively widening in favor of code-first development as AI tooling matures.</span>
+      </li>
+      <li>
+        <span class="check"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>
+        <span>The original estimate of 8–11 days to build a site was written without factoring in AI-assisted development. In practice, with the right setup in place, that timeline compresses significantly.</span>
+      </li>
+    </ul>
+  </article>
+
+  <!-- Card 3 — Featured -->
+  <article class="card featured" data-delay="2">
+    <div class="node"></div>
+    <div class="card-header">
+      <div class="icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+      </div>
+      <div class="title-block">
+        <div class="card-meta">
+          <h2 class="card-title">Premium design is a business asset, not a luxury</h2>
+          <span class="badge">
+            <svg viewBox="0 0 10 10" fill="currentColor"><circle cx="5" cy="5" r="4"/></svg>
+            Most important
+          </span>
+        </div>
+      </div>
+    </div>
+    <p class="card-body">A design system built once — 4 to 5 polished templates — gives us fast turnaround on every site that follows, while delivering a product that looks and feels premium. This isn't just about aesthetics.</p>
+    <ul class="bullets">
+      <li>
+        <span class="check"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>
+        <span>Clients don't only evaluate whether their employees found their benefits information. They evaluate whether the product reflects on them — whether it's something they're proud to put in front of their workforce.</span>
+      </li>
+      <li>
+        <span class="check"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>
+        <span>A site that looks and feels premium signals that the benefit communication was taken seriously. That perception drives client satisfaction, retention, and referrals — it's a business outcome, not a design preference.</span>
+      </li>
+      <li>
+        <span class="check"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>
+        <span>A reusable design system means we don't sacrifice speed for quality. After the initial investment, new client sites are built from proven templates — same fast turnaround, better end product every time.</span>
+      </li>
+    </ul>
+    <div class="pull-quote">
+      <p>The gap isn't that Next.js sites look a little nicer. It's that fluid animations, smooth transitions, and modern interactions come naturally in code — and feel bolted-on in a page builder. For a product people interact with during one of the most important decisions of their year, that difference matters.</p>
+    </div>
+  </article>
+
+</div>
+
+<script>
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08 });
+
+  document.querySelectorAll('.card, .page-header').forEach(el => obs.observe(el));
+</script>
+</body>
+</html>
